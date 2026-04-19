@@ -3,59 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canlı Araç Takip Sistemi</title>
+    <title>Canlı Araç Takip Sistemi | Smart Tracker</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; display: flex; height: 100vh; }
-        #map { flex: 3; height: 100vh; }
-        #sidebar { flex: 1; padding: 20px; background: white; box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; }
-        h2 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .stats { background: #ecf0f1; border-radius: 8px; padding: 15px; margin-top: 20px; }
-        .stat-box { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 10px; font-weight: bold; }
-        .speed { color: #2980b9; }
-        .temp { color: #e67e22; }
-        #alert-box { background: #e74c3c; color: white; padding: 15px; border-radius: 8px; margin-top: 20px; font-weight: bold; display: none; text-align: center; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
-        .log-container { margin-top: 30px; }
-        .log-list { list-style: none; padding: 0; font-family: monospace; font-size: 12px; color: #7f8c8d; }
-        .log-list li { border-bottom: 1px solid #eee; padding: 5px 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 0; font-family: 'Inter', sans-serif; 
+            background: #0f172a; color: #e2e8f0; display: flex; height: 100vh; overflow: hidden;
+        }
+        #map { flex: 1; height: 100vh; z-index: 1;}
+        
+        #glass-panel { 
+            position: absolute; top: 25px; left: 25px; width: 360px; 
+            background: rgba(15, 23, 42, 0.70); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 20px; padding: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            z-index: 1000; display: flex; flex-direction: column; gap: 20px;
+        }
+        
+        h2 { 
+            margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; 
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        h2 span { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stat-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 18px 15px; border-radius: 16px; transition: all 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.1); }
+        .stat-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;}
+        .stat-value { font-size: 32px; font-weight: 700; display: flex; align-items: baseline; gap: 4px; }
+        .stat-value small { font-size: 14px; font-weight: 400; color: #64748b; }
+        
+        .val-speed { color: #38bdf8; text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        .val-temp { color: #fb923c; text-shadow: 0 0 15px rgba(251, 146, 60, 0.4); }
+
+        #alert-box { 
+            background: linear-gradient(90deg, rgba(239,68,68,0.2) 0%, rgba(220,38,38,0.1) 100%);
+            border-left: 4px solid #ef4444; border-radius: 8px;
+            color: #fca5a5; padding: 14px; font-size: 13px; font-weight: 600;
+            display: none; align-items: center; justify-content: center;
+            animation: pulseGlow 1.5s infinite alternate; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes pulseGlow { 
+            from { opacity: 0.8; box-shadow: 0 0 5px rgba(239, 68, 68, 0.1); } 
+            to { opacity: 1; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); border-left-color: #f87171; } 
+        }
+
+        .log-section { margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 20px; }
+        .log-section h4 { margin: 0 0 12px 0; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8; display: flex; align-items: center; gap: 8px;}
+        .log-section h4::before { content: ''; display: inline-block; width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; animation: blink 2s infinite; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .log-list { list-style: none; padding: 0; margin: 0; max-height: 140px; overflow-y: auto; }
+        .log-list::-webkit-scrollbar { width: 3px; }
+        .log-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+        .log-list li { 
+            font-size: 12px; color: #cbd5e1; font-family: 'Courier New', Courier, monospace; 
+            padding: 8px 10px; border-radius: 6px; margin-bottom: 4px;
+            background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02);
+            display: flex; justify-content: space-between;
+        }
+        .log-time { color: #10b981; font-weight: 600; }
+        .log-detail { opacity: 0.8; }
+        
+        /* Modern Leaflet Attribution */
+        .leaflet-control-attribution { background: rgba(0,0,0,0.5) !important; color: #64748b !important; border-top-left-radius: 8px; backdrop-filter: blur(4px); }
+        .leaflet-control-attribution a { color: #94a3b8 !important; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
-    <div id="sidebar">
-        <h2>🚗 Akıllı Araç Takip</h2>
+    <div id="glass-panel">
+        <h2>🚀 Smart Tracker <span id="val-id">Standby</span></h2>
         
-        <div id="alert-box"></div>
+        <div id="alert-box">⚠️ Uyarı Mesajı</div>
 
-        <div class="stats">
-            <div class="stat-box"><span>Hız:</span> <span id="val-speed" class="speed">0 km/h</span></div>
-            <div class="stat-box"><span>Motor Sıcaklığı:</span> <span id="val-temp" class="temp">0 °C</span></div>
-            <div class="stat-box" style="font-size:14px; margin-top:20px; color:#95a5a6;"><span>Araç ID:</span> <span id="val-id">Bekleniyor...</span></div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-title">Anlık Hız</div>
+                <div class="stat-value val-speed"><span id="val-speed">0</span><small>km/h</small></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Motor Isısı</div>
+                <div class="stat-value val-temp"><span id="val-temp">0</span><small>°C</small></div>
+            </div>
         </div>
 
-        <div class="log-container">
-            <h4>🛰️ Son AWS Logları</h4>
+        <div class="log-section">
+            <h4>AWS MQTT Akışı</h4>
             <ul class="log-list" id="logs">
-                <li>Bağlantı bekleniyor...</li>
+                <li><span class="log-time">--:--:--</span> <span class="log-detail">Bağlantı bekleniyor...</span></li>
             </ul>
         </div>
     </div>
 
-    <!-- Leaflet JS ve Socket.IO -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     
     <script>
-        // Haritayı İstanbul Merkezli Başlat
-        var map = L.map('map').setView([41.0422, 29.0060], 15);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        // Dark Mode ve Premium Harita
+        var map = L.map('map', { zoomControl: false }).setView([41.0422, 29.0060], 16);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap | CARTO Dark',
+            maxZoom: 19
         }).addTo(map);
 
-        // Arabayı Temsil Eden Özel İkon Seti
+        // Özel Animasyonlu Araç İkonu
         var carIcon = L.icon({
             iconUrl: 'https://cdn-icons-png.flaticon.com/512/3204/3204933.png',
             iconSize: [40, 40],
@@ -64,35 +130,40 @@
 
         var carMarker = L.marker([41.0422, 29.0060], {icon: carIcon}).addTo(map);
 
-        // WebSocket ile Sunucudan Veri Dinleme
         const socket = io();
 
         socket.on('vehicleData', (data) => {
-            // Marker Konumunu Güncelle
+            // Animasyonlu Harita Kaydırma
             var newLatLng = new L.LatLng(data.location.lat, data.location.lng);
             carMarker.setLatLng(newLatLng);
-            map.panTo(newLatLng); // Harita kamerası aracı takip etsin
+            map.panTo(newLatLng, { animate: true, duration: 2.0 });
 
-            // Sidebar İstatistiklerini Güncelle
+            // Değerleri Güncelle
             document.getElementById('val-id').innerText = data.vehicleId;
-            document.getElementById('val-speed').innerText = data.speed + ' km/s';
-            document.getElementById('val-temp').innerText = data.engineTemp + ' °C';
+            document.getElementById('val-speed').innerText = data.speed;
+            document.getElementById('val-temp').innerText = data.engineTemp;
 
-            // Alarm Durumu Kontrolü
+            // Kural Motoru Alarmları
             const alertBox = document.getElementById('alert-box');
             if(data.alert) {
-                alertBox.innerText = data.alert;
-                alertBox.style.display = 'block';
+                alertBox.innerHTML = `${data.alert}`;
+                alertBox.style.display = 'flex';
             } else {
                 alertBox.style.display = 'none';
             }
 
-            // Log Paneline Ekle
+            // Siberpunk Canlı Log Bölümü
             const logs = document.getElementById('logs');
             const li = document.createElement('li');
-            li.innerText = `[${new Date(data.timestamp).toLocaleTimeString()}] ${data.speed}km/s - ${data.location.lat.toFixed(4)},${data.location.lng.toFixed(4)}`;
+            const time = new Date(data.timestamp).toLocaleTimeString('tr-TR');
+            // Logu formatlayıp ekle
+            li.innerHTML = `<span class="log-time">${time}</span><span class="log-detail">[${data.location.lat.toFixed(3)},${data.location.lng.toFixed(3)}] ${data.speed}km/s</span>`;
             logs.prepend(li);
-            if(logs.children.length > 10) logs.removeChild(logs.lastChild);
+            
+            // max 8 log tut
+            if(logs.children.length > 8) {
+                logs.removeChild(logs.lastChild);
+            }
         });
     </script>
 </body>
